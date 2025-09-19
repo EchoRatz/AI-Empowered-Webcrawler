@@ -1,0 +1,5 @@
+praw
+PyYAML
+tqdm
+tenacity
+pandas
