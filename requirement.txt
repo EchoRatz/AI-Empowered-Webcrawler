@@ -3,3 +3,11 @@ PyYAML
 tqdm
 tenacity
 pandas
+
+scikit-learn>=1.3.0
+numpy>=1.24.0
+sentence-transformers>=2.2.2
+
+# Torch is required by sentence-transformers.
+# Let pip pick the right wheel for your OS/CPU. If you want a pin:
+torch>=2.2,<2.6
