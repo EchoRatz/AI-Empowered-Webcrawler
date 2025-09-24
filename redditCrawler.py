@@ -250,6 +250,10 @@ def run(args):
         import yaml
         cfg = yaml.safe_load(f)
         
+        # Override subreddits from CLI if provided
+    if getattr(args, "subreddit", None):
+        cfg["subreddits"] = args.subreddit
+        
     import os, time, json
     config_path = os.path.abspath(args.config)
     try:
@@ -367,5 +371,6 @@ def run(args):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Reddit crawler (posts + comments) with CSV/JSON + depth control.")
     ap.add_argument("--config", default="config.yaml", help="Path to YAML config.")
+    ap.add_argument("--subreddit", nargs="+", help="Override subreddits from config")
     args = ap.parse_args()
     run(args)
