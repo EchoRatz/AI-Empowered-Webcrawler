@@ -5,12 +5,14 @@ from typing import List, Optional
 from dotenv import load_dotenv
 import praw
 
-# our selector module (keep file name: subreddit_selector.py)
-from subredditSelector import find_subreddits_for_topics
+from subreddit_selector import find_subreddits_for_topics
 
 # ---- setup ----
-load_dotenv()  # load .env from repo root if present
-SCRIPT_PATH = "redditCrawler.py"  # adjust path if your legacy script lives elsewhere
+load_dotenv()  # loads .env from repo root if present
+SCRIPT_PATH = "redditCrawler.py"  # adjust if your legacy script is elsewhere
+
+# Optional: simple ban list to avoid meme/low-signal subs (edit as you like)
+BAN_PATTERNS = ("shit", "toilet", "totally", "circlejerk", "memes")
 
 def get_reddit() -> praw.Reddit:
     return praw.Reddit(
@@ -50,6 +52,9 @@ def resolve_subreddits(topics: List[str], reddit: praw.Reddit) -> List[str]:
         itertools.chain.from_iterable(v for v in topic2subs.values() if isinstance(v, (list, tuple)))
     ))
 
+    # Filter banned patterns (optional)
+    merged = [s for s in merged if not any(p in s.lower() for p in BAN_PATTERNS)]
+
     print("\n[selector] Topics -> subreddits")
     for t, subs in topic2subs.items():
         print(f" {t} -> {subs}")
@@ -70,23 +75,43 @@ def call_existing_script_for_subreddits(sr_list: List[str]) -> int:
     return proc.returncode
 
 def try_import_crawl_func() -> Optional[callable]:
-    """
-    If someday your legacy module exposes a crawl function, you can wire it here.
-    For now, always return None to use the subprocess path.
-    """
+    # Keep subprocess path for now
     return None
+
+def confirm_selection(subs: List[str]) -> bool:
+    if not subs:
+        print("No subreddits resolved.")
+        return False
+    print("Proceed to crawl these subreddits?")
+    for s in subs:
+        print(f"  - r/{s}")
+    while True:
+        ans = input("Proceed? [y/N] ").strip().lower()
+        if ans in ("y", "yes"):
+            return True
+        if ans in ("n", "no", ""):
+            return False
+        print("Please answer y or n.")
 
 def main():
     reddit = get_reddit()
-    topics = prompt_topics()
-    if not topics:
-        print("No topics entered. Exiting.")
-        sys.exit(0)
 
-    subreddits = resolve_subreddits(topics, reddit)
-    if not subreddits:
-        print("No subreddits found for the given topics.")
-        sys.exit(0)
+    # QoL loop: let user re-enter topics until they confirm
+    while True:
+        topics = prompt_topics()
+        if not topics:
+            print("No topics entered. Exiting.")
+            sys.exit(0)
+
+        subreddits = resolve_subreddits(topics, reddit)
+        if not subreddits:
+            print("No subreddits found. Try different keywords.\n")
+            continue
+
+        if confirm_selection(subreddits):
+            break
+        else:
+            print("\nOkay, let's enter topics again.\n")
 
     crawl_fn = try_import_crawl_func()
     if crawl_fn:
@@ -99,4 +124,7 @@ def main():
             print(f"[warn] crawler exited with code {rc}")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nAborted by user.")
