@@ -5,7 +5,7 @@ from typing import List, Optional
 from dotenv import load_dotenv
 import praw
 
-from subreddit_selector import find_subreddits_for_topics
+from subredditSelector import find_subreddits_for_topics
 
 # ---- setup ----
 load_dotenv()  # loads .env from repo root if present
